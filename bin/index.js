@@ -2,145 +2,129 @@
 
 /**
  * GitReady AI - Entry Point
- *
- * Flow:
- * 1. Security Scan
- * 2. Get AI Commit Suggestion
- * 3. Update README (Optional)
- * 4. Final Commit
+ * 
+ * Workflow:
+ * 1. Security Scan (.env, node_modules)
+ * 2. Generate Commit Message (AI or Smart Fallback)
+ * 3. Review/Edit Suggestion
+ * 4. Update README (Optional & Staged)
+ * 5. Final Commit Execution
  */
 
 import chalk from 'chalk';
 import inquirer from 'inquirer';
 import simpleGit from 'simple-git';
 
+// Internal Module Imports
 import { runSecurityCheck } from '../src/security.js';
 import { getGitDiff, commitCode } from '../src/git.js';
 import { getAICommitMessage } from '../src/ai.js';
 import { updateReadme } from '../src/readme.js';
+import { generateFallbackCommitMessage } from '../src/fallback.js';
 
 const currentDir = process.cwd();
 const git = simpleGit(currentDir);
 
 async function main() {
-    console.log(chalk.blue.bold('\n GitReady AI is initializing...'));
+    console.log(chalk.blue.bold('\n🚀 GitReady AI is initializing...'));
 
-    // Phase 1: Security Scan
+    // --- PHASE 1: Security Scan ---
+    // Checks for exposed .env or node_modules in .gitignore
     await runSecurityCheck(currentDir);
 
-    // Phase 2: Get Git Changes
+    // --- PHASE 2: Get Git Changes ---
     const result = await getGitDiff();
 
     if (result.error === 'NOT_A_REPO') {
-        console.log(chalk.red('\n Error: This folder is not a Git repository.'));
-        console.log(chalk.yellow('Solution: Run "git init" first.'));
+        console.log(chalk.red('\n❌ Error: This folder is not a Git repository.'));
+        console.log(chalk.yellow('Solution: Run "git init" to initialize a repository first.'));
         return;
     }
 
     const diff = result.diff;
 
     if (!diff || diff.trim() === '') {
-        console.log(chalk.red('\nℹ No staged changes found.'));
-        console.log(chalk.yellow('Solution: Run "git add ." first.'));
+        console.log(chalk.red('\nℹ️  No staged changes found.'));
+        console.log(chalk.yellow('Solution: Use "git add ." to stage your changes before running the tool.'));
         return;
     }
 
-    let commitMessage = null;
+    let suggestion = "";
+    let isAIGenerated = false;
 
-    // Phase 3: AI Commit Message
-    console.log(chalk.yellow('\n AI is analyzing your changes...'));
+    // --- PHASE 3: Generate Suggestion (AI or Smart Fallback) ---
+    console.log(chalk.yellow('\n🤖 Analyzing your changes...'));
 
     try {
-        commitMessage = await getAICommitMessage(diff);
+        suggestion = await getAICommitMessage(diff);
+        isAIGenerated = true;
     } catch (error) {
-        console.log(
-            chalk.yellow(
-                '\n AI is unavailable. Switching to manual commit message.'
-            )
-        );
+        // Switching to Smart Fallback if AI/Internet is down
+        suggestion = generateFallbackCommitMessage(diff);
+        isAIGenerated = false;
+        console.log(chalk.gray('ℹ️  AI is offline. Using smart fallback generator.'));
     }
 
-    // Manual fallback
-    if (!commitMessage) {
-        const answer = await inquirer.prompt([
-            {
-                type: 'input',
-                name: 'message',
-                message: 'Enter your commit message:',
-                validate: input =>
-                    input.trim() !== '' ||
-                    'Commit message cannot be empty.'
-            }
-        ]);
+    // --- PHASE 4: Review and Edit Suggestion ---
+    const { finalMessage } = await inquirer.prompt([
+        {
+            type: 'input',
+            name: 'finalMessage',
+            message: isAIGenerated ? chalk.cyan('AI Suggestion:') : chalk.yellow('Smart Suggestion:'),
+            default: suggestion,
+            validate: input => input.trim() !== '' || 'Commit message cannot be empty.'
+        }
+    ]);
 
-        commitMessage = answer.message;
-    } else {
-        console.log(
-            chalk.cyan.bold('\n AI Suggestion: ') +
-            chalk.white(`"${commitMessage}"`)
-        );
-    }
-
-    // README update (optional)
+    // --- PHASE 5: Optional README Update ---
     const { confirmReadmeUpdate } = await inquirer.prompt([
         {
             type: 'confirm',
             name: 'confirmReadmeUpdate',
-            message:
-                'Would you like to update README.md before committing?',
-            default: false
+            message: 'Would you like to update README.md with these changes?',
+            default: true
         }
     ]);
 
     if (confirmReadmeUpdate) {
         try {
-            console.log(chalk.yellow('\n Updating README...'));
-
+            console.log(chalk.yellow('\n📝 Updating README...'));
             await updateReadme(currentDir, diff);
-
+            
+            // We must stage the README so it is included in the commit
             await git.add('README.md');
-
-            console.log(
-                chalk.green(' README.md updated and staged.')
-            );
+            console.log(chalk.green('✅ README.md updated and staged.'));
         } catch (error) {
-            console.log(
-                chalk.yellow(
-                    ' README update skipped (AI unavailable).'
-                )
-            );
+            console.log(chalk.red('⚠️  Failed to update README automatically. skipping...'));
         }
     }
 
-    // Final confirmation
+    // --- PHASE 6: Final Confirmation & Execution ---
     const { confirmFinalCommit } = await inquirer.prompt([
         {
             type: 'confirm',
             name: 'confirmFinalCommit',
-            message: 'Commit all staged changes now?',
+            message: 'Ready to commit all changes?',
             default: true
         }
     ]);
 
     if (!confirmFinalCommit) {
-        console.log(
-            chalk.gray('\nCommit process cancelled by user.')
-        );
+        console.log(chalk.gray('\nCommit process cancelled by user.'));
         return;
     }
 
-    await commitCode(commitMessage);
-
-    console.log(
-        chalk.green(
-            '\n Success: Everything committed successfully!'
-        )
-    );
+    try {
+        await commitCode(finalMessage);
+        console.log(chalk.green.bold('\n🚀 Success: Everything committed successfully!'));
+    } catch (err) {
+        console.error(chalk.red('\n❌ Git Commit Failed:'), err.message);
+    }
 }
 
+/**
+ * Global Error Handling
+ */
 main().catch(error => {
-    console.error(
-        chalk.red('\n Unexpected Error:'),
-        error.message
-    );
+    console.error(chalk.red('\n❌ Unexpected System Error:'), error.message);
 });
