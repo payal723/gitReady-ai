@@ -20,7 +20,6 @@ if (!apiKey) {
 
 const genAI = new GoogleGenerativeAI(apiKey);
 
-// Use only the model that currently works for your project
 const MODEL = "gemini-2.5-flash";
 
 function sleep(ms) {
@@ -32,33 +31,47 @@ async function generateContent(prompt) {
         model: MODEL
     });
 
-    let lastError;
-
     for (let attempt = 1; attempt <= 3; attempt++) {
         try {
             const result = await model.generateContent(prompt);
+
             return result.response.text().trim();
         } catch (error) {
-            lastError = error;
+            const message = error?.message || "";
 
-            const isRetryable =
-                error?.message?.includes("503") ||
-                error?.message?.includes("429");
+            const is503 =
+                message.includes("503") ||
+                message.includes("Service Unavailable");
 
-            if (isRetryable && attempt < 3) {
+            const is429 =
+                message.includes("429") ||
+                message.includes("Quota exceeded") ||
+                message.includes("Too Many Requests");
+
+            if ((is503 || is429) && attempt < 3) {
                 console.log(
-                    `⚠️ AI busy (attempt ${attempt}/3). Retrying in 5 seconds...`
+                    ` AI busy (attempt ${attempt}/3). Retrying in 5 seconds...`
                 );
 
                 await sleep(5000);
                 continue;
             }
 
-            break;
+            console.log(
+                chalkYellow(
+                    "\n AI service unavailable. Falling back..."
+                )
+            );
+
+            return null;
         }
     }
 
-    throw lastError;
+    return null;
+}
+
+function chalkYellow(text) {
+    return `\x1b[33m${text}\x1b[0m`;
 }
 
 /**
@@ -90,6 +103,10 @@ ${safeDiff}
 `;
 
     const response = await generateContent(prompt);
+
+    if (!response) {
+        return null;
+    }
 
     return response
         .replace(/^["']|["']$/g, "")
