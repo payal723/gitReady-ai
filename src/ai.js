@@ -59,7 +59,8 @@ async function generateWithFallback(prompt) {
                     continue;
                 }
 
-                console.log(` ${modelName} failed`);
+                console.log(`⚠️ ${modelName} failed`);
+console.log(error.message);
                 break;
             }
         }
