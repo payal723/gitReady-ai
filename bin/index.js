@@ -48,7 +48,7 @@ async function main() {
     
     try {
         const message = await getAICommitMessage(diff);
-        console.log(chalk.cyan.bold('\n✨ AI Suggestion: ') + chalk.white(`"${message}"`));
+        console.log(chalk.cyan.bold('\n AI Suggestion: ') + chalk.white(`"${message}"`));
 
         // STEP 1: Ask about README before committing
         const { confirmReadmeUpdate } = await inquirer.prompt([{
