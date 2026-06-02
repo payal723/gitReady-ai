@@ -26,7 +26,7 @@ const currentDir = process.cwd();
 const git = simpleGit(currentDir);
 
 async function main() {
-    console.log(chalk.blue.bold('\n🚀 GitReady AI is initializing...'));
+    console.log(chalk.blue.bold('\n GitReady AI is initializing...'));
 
     // --- PHASE 1: Security Scan ---
     // Checks for exposed .env or node_modules in .gitignore
@@ -36,7 +36,7 @@ async function main() {
     const result = await getGitDiff();
 
     if (result.error === 'NOT_A_REPO') {
-        console.log(chalk.red('\n❌ Error: This folder is not a Git repository.'));
+        console.log(chalk.red('\n Error: This folder is not a Git repository.'));
         console.log(chalk.yellow('Solution: Run "git init" to initialize a repository first.'));
         return;
     }
@@ -44,7 +44,7 @@ async function main() {
     const diff = result.diff;
 
     if (!diff || diff.trim() === '') {
-        console.log(chalk.red('\nℹ️  No staged changes found.'));
+        console.log(chalk.red('\n  No staged changes found.'));
         console.log(chalk.yellow('Solution: Use "git add ." to stage your changes before running the tool.'));
         return;
     }
@@ -53,7 +53,7 @@ async function main() {
     let isAIGenerated = false;
 
     // --- PHASE 3: Generate Suggestion (AI or Smart Fallback) ---
-    console.log(chalk.yellow('\n🤖 Analyzing your changes...'));
+    console.log(chalk.yellow('\n Analyzing your changes...'));
 
     try {
         suggestion = await getAICommitMessage(diff);
@@ -62,7 +62,7 @@ async function main() {
         // Switching to Smart Fallback if AI/Internet is down
         suggestion = generateFallbackCommitMessage(diff);
         isAIGenerated = false;
-        console.log(chalk.gray('ℹ️  AI is offline. Using smart fallback generator.'));
+        console.log(chalk.gray('ℹ  AI is offline. Using smart fallback generator.'));
     }
 
     // --- PHASE 4: Review and Edit Suggestion ---
@@ -88,14 +88,14 @@ async function main() {
 
     if (confirmReadmeUpdate) {
         try {
-            console.log(chalk.yellow('\n📝 Updating README...'));
+            console.log(chalk.yellow('\n Updating README...'));
             await updateReadme(currentDir, diff);
             
             // We must stage the README so it is included in the commit
             await git.add('README.md');
-            console.log(chalk.green('✅ README.md updated and staged.'));
+            console.log(chalk.green(' README.md updated and staged.'));
         } catch (error) {
-            console.log(chalk.red('⚠️  Failed to update README automatically. skipping...'));
+            console.log(chalk.red('  Failed to update README automatically. skipping...'));
         }
     }
 
@@ -116,9 +116,9 @@ async function main() {
 
     try {
         await commitCode(finalMessage);
-        console.log(chalk.green.bold('\n🚀 Success: Everything committed successfully!'));
+        console.log(chalk.green.bold('\n Success: Everything committed successfully!'));
     } catch (err) {
-        console.error(chalk.red('\n❌ Git Commit Failed:'), err.message);
+        console.error(chalk.red('\n Git Commit Failed:'), err.message);
     }
 }
 
@@ -126,5 +126,5 @@ async function main() {
  * Global Error Handling
  */
 main().catch(error => {
-    console.error(chalk.red('\n❌ Unexpected System Error:'), error.message);
+    console.error(chalk.red('\n Unexpected System Error:'), error.message);
 });
