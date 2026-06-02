@@ -1,6 +1,5 @@
 import simpleGit from 'simple-git';
 
-// Ensure the tool runs in the directory where the command is executed
 const git = simpleGit({
     baseDir: process.cwd(),
     binary: 'git',
@@ -14,10 +13,8 @@ export async function getGitDiff() {
             return { error: 'NOT_A_REPO' };
         }
 
-        // Use --staged to get only staged changes
         const diff = await git.diff(['--staged']);
 
-        // Return the diff or an empty string if no staged changes exist
         return { diff: diff || '' };
 
     } catch (err) {
