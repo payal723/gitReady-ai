@@ -1,18 +1,17 @@
 {
-  "name": "gitready-ai",
-  "version": "1.0.0",
-  "main": "index.js",
+  "name": "auto-git-ready",
+  "version": "1.1.0",
+   "publishConfig": {
+    "access": "public"
+  },
+  "description": "Professional AI-powered Git workflow automator",
   "type": "module",
+  "main": "bin/index.js",
   "bin": {
-    "gitready": "./bin/index.js"
+    "gitready": "bin/index.js"
   },
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
   "author": "Payal Jat",
   "license": "ISC",
-  "description": "",
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "chalk": "^4.1.2",
